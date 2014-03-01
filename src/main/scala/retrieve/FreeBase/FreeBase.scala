@@ -28,6 +28,23 @@ sealed trait JsonApiQuery {
   = doQuery(sendReceive ~> unmarshal[caseType])
 }
 
+//TODO Parse Error responses
+//HttpEntity(application/json; charset=UTF-8,{
+//"error": {
+//"errors": [
+//{
+//"domain": "global",
+//"reason": "invalid",
+//"message": "Unique query may have at most one result. Got 10",
+//"locationType": "other",
+//"location": "genre"
+//}
+//],
+//"code": 400,
+//"message": "Unique query may have at most one result. Got 10"
+//}
+//}
+//)
 object JsonApiQuery {
   def apply[T](r: HttpRequest) = new JsonApiQuery {
     override val req: HttpRequest = r
@@ -56,9 +73,11 @@ object FreeBaseQueries extends FreeBase {
       Get(mkQuery(q.toJson.compactPrint))
   )
 
-  def movieQuery(q: MovieQuery) = FreeBase.JsonApiQuery[MovieQuery] (
-    Get(mkQuery(q.toJson.compactPrint))
-  )
+  def movieQuery(q: MovieQuery) = {
+    val g = Get(mkQuery(q.toJson.compactPrint))
+    println(g)
+    FreeBase.JsonApiQuery[MovieQuery] (g)
+  }
 }
 
 

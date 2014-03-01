@@ -1,6 +1,7 @@
 package retrieve.FreeBase
 
 import spray.json._
+import spray.json
 
 /**
  * Created by hassan on 28/02/2014.
@@ -15,17 +16,49 @@ import spray.json._
 //}]
 
 trait MyMovieQueryProtocol extends DefaultJsonProtocol {
-  private val default_shape = JsObject(
-    "name"                  ->  JsNull,
-    "type"                  ->  JsString("/film/film"),
-    "initial_release_date"  ->  JsNull
-  )
+  private object QueryToJson {
+    private val hasDatePredicate = (x:QueryTag) =>  x.isInstanceOf[BetweenDates]
+    private val hasSingleDatePredicate = (_:MovieQuery).predicates.filter(hasDatePredicate).size == 1
+    private val hasSingleSpecifierValue = (_:MovieQuery).specifier.name.size == 1
+
+    private def Processor(validator : (MovieQuery) => Unit )(toJson : (MovieQuery) => JsValue): (MovieQuery) => JsValue =
+      (q:MovieQuery) => { validator(q); toJson(q) }
+
+    private val default_shape = Map(
+      "name"                  ->  JsNull,
+      "type"                  ->  JsString("/film/film"),
+      "initial_release_date"  ->  JsNull,
+      "genre"                 ->  JsArray(),
+      "directed_by"           ->  JsNull,
+      "subjects"              ->  JsArray(),
+      "trailers"              ->  JsNull
+    )
+
+    private val isSensibleTitleQuery = (x:MovieQuery) => {
+      if(! hasSingleSpecifierValue(x)) throw new Exception("Multiple Titles not allowed.")
+    }
+
+    val processTitle = Processor(isSensibleTitleQuery) { (q:MovieQuery) => JsObject( default_shape ++ Map(
+        "name" -> JsString(q.specifier.name.head))
+    ) }
+
+    private val isSensibleAwardQuery = (x:MovieQuery) => {
+      if( ! hasSingleDatePredicate(x)) throw new Exception("Awards as a specifier should contain a single date predicate.")
+      if(x.specifier.name.nonEmpty) throw new Exception("Awards as a specifier should be parameterless")
+    }
+
+    val processAward = Processor(isSensibleAwardQuery) { (q:MovieQuery) => {
+      JsObject()
+    } }
+  }
 
   implicit object MovieQueryJsonFormat extends RootJsonFormat[MovieQuery] {
+    import QueryToJson._
     def write(q: MovieQuery) =
       q.specifier match {
-        case Title(x :: Nil) => default_shape.copy(Map("name" -> JsString(x)))
-        case Title(x :: xs) => throw new Exception("Multiple Titles not allowed.")
+        case Title(_) => processTitle(q)
+        case Awards(_) => processAward(q)
+        case _ => throw new Exception("senseless query")
       }
 
     def read(value : JsValue) = ???
@@ -35,23 +68,25 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
     def write(d: MovieDescriptor) = ???
 
     def read(d : JsValue) = {
-      MovieDescriptor("hello", "world")
+      val tl = d.asJsObject.fields("result").asJsObject
+      tl.getFields("name","initial_release_date", "genre","directed_by","subjects","trailers") match {
+        case Seq( JsString(name), JsString(initialReleaseDate),JsArray(genres), JsString(directedBy),JsArray(subjects),JsString(trailers)) =>
+          MovieDescriptor(name,initialReleaseDate,genres.asInstanceOf[List[String]], directedBy, subjects.asInstanceOf[List[String]],trailers)
+      }
     }
   }
 }
 
-
-
-
-
-trait QueryTag
+trait QueryTag {
+  val name : List[String]
+}
 trait CanSpecify extends QueryTag
 
-case class Actor(name : List[String])        extends CanSpecify
-case class Title(name : List[String])        extends CanSpecify
-case class Genre(name : List[String])        extends CanSpecify
-case class Awards(name : List[String])       extends CanSpecify
-case class BetweenDates(name: List[String])  extends QueryTag
+case class Actor(name : List[String] )        extends CanSpecify
+case class Title(name : List[String] )        extends CanSpecify
+case class Genre(name : List[String] )        extends CanSpecify
+case class Awards(name : List[String] = Nil ) extends CanSpecify
+case class BetweenDates(name: List[String]  ) extends QueryTag
 
 trait QueryElement
 
@@ -65,7 +100,7 @@ case class MovieQuery(specifier : CanSpecify, predicates : List[QueryTag]) {
   def AND(right: QueryTag) : MovieQuery = WITH(right)
 }
 
-object MovieQueryOps {
+trait MovieQueryOps {
   implicit def makeSpecifierFromTag[T <: CanSpecify](value : T) = MovieQuerySpecifier(value)
   implicit def makeQueryFromSpecifier(value : MovieQuerySpecifier) = MovieQuery(value.value,Nil)
   implicit def strToSetList(value: String) = List(value)
