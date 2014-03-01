@@ -1,7 +1,7 @@
 package retrieve.FreeBase
 
 import spray.json._
-import spray.json
+
 
 /**
  * Created by hassan on 28/02/2014.
@@ -21,9 +21,15 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
     private val hasSingleDatePredicate = (_:MovieQuery).predicates.filter(hasDatePredicate).size == 1
     private val hasSingleSpecifierValue = (_:MovieQuery).specifier.name.size == 1
 
-    private def Processor(validator : (MovieQuery) => Unit )(toJson : (MovieQuery) => JsValue): (MovieQuery) => JsValue =
-      (q:MovieQuery) => { validator(q); toJson(q) }
+    trait Processor {
+      protected def mkWithShape(shape : Map[String,JsValue])(values : (String,JsValue) *) = JsObject(shape ++ values.toMap)
 
+      def validator(q: MovieQuery) : Unit
+      def toJson(q: MovieQuery) : JsValue
+
+      final def apply(q: MovieQuery) : JsValue = { validator(q); toJson(q)}
+    }
+    
     private val default_shape = Map(
       "name"                  ->  JsNull,
       "type"                  ->  JsString("/film/film"),
@@ -34,22 +40,23 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
       "trailers"              ->  JsNull
     )
 
-    private val isSensibleTitleQuery = (x:MovieQuery) => {
-      if(! hasSingleSpecifierValue(x)) throw new Exception("Multiple Titles not allowed.")
+    val processTitle = new Processor {
+      override def validator(x:MovieQuery) =
+        if(! hasSingleSpecifierValue(x)) throw new Exception("Multiple Titles not allowed.")
+
+      override def toJson(x:MovieQuery) = mkWithShape(default_shape)(
+        "name" -> JsString(x.specifier.name.head)
+      )
     }
 
-    val processTitle = Processor(isSensibleTitleQuery) { (q:MovieQuery) => JsObject( default_shape ++ Map(
-        "name" -> JsString(q.specifier.name.head))
-    ) }
+    val processAward = new Processor {
+      override def validator(x:MovieQuery) = {
+        if (!hasSingleDatePredicate(x)) throw new Exception("Awards as a specifier should contain a single date predicate.")
+        if(x.specifier.name.nonEmpty) throw new Exception("Awards as a specifier should be parameterless")
+      }
 
-    private val isSensibleAwardQuery = (x:MovieQuery) => {
-      if( ! hasSingleDatePredicate(x)) throw new Exception("Awards as a specifier should contain a single date predicate.")
-      if(x.specifier.name.nonEmpty) throw new Exception("Awards as a specifier should be parameterless")
+      override def toJson(x: MovieQuery) : JsValue = ???
     }
-
-    val processAward = Processor(isSensibleAwardQuery) { (q:MovieQuery) => {
-      JsObject()
-    } }
   }
 
   implicit object MovieQueryJsonFormat extends RootJsonFormat[MovieQuery] {
