@@ -11,7 +11,7 @@ case class MovieDescriptors(md : List[MovieDescriptor])
 trait MovieDescriptorOps {
   implicit val showMovieDescriptor = new Show[MovieDescriptor] {
     override def shows(movd : MovieDescriptor) : String = { import movd._
-      f"$title , $initialReleaseDate"
+      f"$initialReleaseDate%-12s  $title"
     }
   }
 

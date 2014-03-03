@@ -4,6 +4,7 @@ import spray.json._
 import scala.util.matching._
 import scalaz._
 import Scalaz._
+import retrieve.freebase
 
 
 /**
@@ -95,18 +96,36 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
     val processAward = new Processor {
       override def validator(x: MovieQuery) = {
         if (!hasSingleYearPredicate(x)) throw new Exception("Awards as a specifier should contain a single date predicate, and this predicate should be a year or a year range.")
-        if (x.specifier.name.nonEmpty) throw new Exception("Awards as a specifier should be parameterless.")
+        if (x.specifier.name.size != 1) throw new Exception("Awards should be present with a single parameter.")
       }
 
       override def toJson(x: MovieQuery): JsValue = mkWithShape(default_shape)(
         "x:type" -> JsString("/award/award_winning_work"),
         "y:/award/award_winning_work/awards_won" -> JsArray(JsObject(
           "award" -> JsArray(JsObject(
-            "category_of" -> JsString("Academy Awards")
+            "category_of" -> JsString(x.specifier.name.head)
           )),
           "year" -> JsString(x.predicates.filter(isDatePredicate).head.name.head)
         ))
       )
+    }
+
+    val processFestival = new Processor {
+      override def validator(x: MovieQuery) = {
+        if (!hasSingleYearPredicate(x)) throw new Exception("Film Festivals as a specifier should contain a single date predicate, and this predicate should be a year or a year range.")
+        if (x.specifier.name.size != 1) throw new Exception("Only a Single Film Festival can be queried at a time.")
+      }
+      override def toJson(x:MovieQuery) = {
+        val datelow = x.predicates.filter(isDatePredicate).head.name.head
+        val datehigh = (datelow.toInt + 1).toString
+        mkWithShape(default_shape)(
+          "film_festivals" -> JsArray(JsObject(
+              "festival" -> JsString(x.specifier.name.head),
+              "opening_date>" -> JsString(datelow),
+              "opening_date<=" -> JsString(datehigh)
+        ) )
+        )
+      }
     }
   }
 
@@ -118,6 +137,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
       q.specifier match {
         case Title(_) => processTitle(q)
         case Awards(_) => processAward(q)
+        case Festival(_) => processFestival(q)
         case _ => throw new Exception("senseless query")
       }
 
@@ -135,9 +155,9 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
     }
 
     def read(d: JsValue): MovieDescriptors = {
-       val tlll = d.asJsObject.fields("result").asInstanceOf[JsArray]
-          val mdl = tlll.elements.map {tl =>extractMD(tl.asJsObject)}.toList
-          MovieDescriptors(mdl)
+       val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
+          val movies= resultAsArray.elements.map {tl =>extractMD(tl.asJsObject)}.toList
+          MovieDescriptors(movies)
     }
   }
 }
@@ -151,7 +171,10 @@ case class Actor(name : List[String] )        extends CanSpecify
 case class Title(name : List[String] )        extends CanSpecify
 case class Genre(name : List[String] )        extends CanSpecify
 case class Awards(name : List[String] = Nil ) extends CanSpecify
+case class Festival(name : List[String])      extends CanSpecify
 case class BetweenDates(name: List[String]  ) extends QueryTag
+
+
 
 trait QueryElement
 

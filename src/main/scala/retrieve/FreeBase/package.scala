@@ -12,7 +12,9 @@ package object freebase
   with MyMovieQueryProtocol
   with MovieQueryOps
   with spray.httpx.SprayJsonSupport
-  with MovieDescriptorOps {
+  with MovieDescriptorOps
+  with NamedQueries
+  {
   implicit val as =  server.actorSystem //AkkaSystem.actorSystem
   implicit val as_d = server.actorSystem.dispatcher
 

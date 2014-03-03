@@ -28,6 +28,8 @@ sealed trait JsonApiQuery {
 
   def asCase(implicit unmarsh: FromResponseUnmarshaller[caseType]): Future[caseType]
   = doQuery(sendReceive ~> unmarshal[caseType])
+
+  def awaitShow(implicit um: FromResponseUnmarshaller[caseType], sh: Show[caseType]) = asString.await.asString
 }
 
 //TODO Parse Error responses
@@ -75,7 +77,7 @@ object FreeBaseQueries extends FreeBaseQueriesT {
 
   def movieQuery(q: MovieQuery) = {
     val g = Get(mkQuery(q.toJson.compactPrint))
-    println(q.toJson.compactPrint)
+   // println(q.toJson.compactPrint)
     freebase.JsonApiQuery[MovieDescriptors] (g)
   }
 }
