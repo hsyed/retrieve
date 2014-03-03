@@ -5,6 +5,8 @@ Spray Service for Creating Media Lists.
 
 Interface for pulling lists from Freebase and other sources, and doing interesting things with them. Will keep fleshing it out. 
 
+At the moment the codebase can fetch and demarhsall data from a few sources, it can get tvshow and Oscar winners from freebase. A simple DSL exists to create freebase queries of interest, though I might get rid of it if the queries aren't too diverse. The requests are made via Spray IO. The code is being developed and tested via the SBT console but a Spray Server also exists as eventually that is how the system should be interacted with.
+
     scala> import retrieve.freebase._
     scala> val q = Awards() AND BetweenDates("2013")
     scala> val qq = FreeBaseQueries.movieQuery(q).asCase.await
