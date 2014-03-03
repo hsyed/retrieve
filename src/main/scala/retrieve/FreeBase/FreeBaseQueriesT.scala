@@ -1,13 +1,15 @@
-package retrieve.FreeBase
+package retrieve.freebase
 
-import retrieve.FreeBase
+import retrieve.freebase
 import spray.json._
 import spray.client.pipelining._
-import spray.http.{HttpEntity, HttpRequest, Uri}
 import scalaz._
 import Scalaz._
 import scala.concurrent.Future
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
+import spray.http.{HttpEntity, Uri}
+import spray.http.HttpRequest
+
 
 /**
  * Created by hassan on 27/02/2014.
@@ -52,10 +54,8 @@ object JsonApiQuery {
   }
 }
 
-trait FreeBase {
+trait FreeBaseQueriesT {
   def baseUrl: String
-
-  def apiKey: String = "AIzaSyBZ87EJuTOIvzF6D6oE4hOxiIJoGVXHqfY"
 
   def serviceApiUrlSearch: String = f"$baseUrl/search"
 
@@ -66,17 +66,17 @@ trait FreeBase {
   def mkQuery(q: String) = mkMqlUri withQuery ("query" -> q)
 }
 
-object FreeBaseQueries extends FreeBase {
+object FreeBaseQueries extends FreeBaseQueriesT {
   val baseUrl = "www.googleapis.com"
 
-  def tVShowQuery(q: TVShowQuery) = FreeBase.JsonApiQuery[TVShowDescriptor](
+  def tVShowQuery(q: TVShowQuery) = freebase.JsonApiQuery[TVShowDescriptor](
       Get(mkQuery(q.toJson.compactPrint))
   )
 
   def movieQuery(q: MovieQuery) = {
     val g = Get(mkQuery(q.toJson.compactPrint))
-    println(g)
-    FreeBase.JsonApiQuery[MovieQuery] (g)
+    println(q.toJson.compactPrint)
+    freebase.JsonApiQuery[MovieDescriptors] (g)
   }
 }
 

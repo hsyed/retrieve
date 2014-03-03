@@ -1,4 +1,4 @@
-package retrieve.FreeBase
+package retrieve.freebase
 
 import spray.json._
 import scalaz._

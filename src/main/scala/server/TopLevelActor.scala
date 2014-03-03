@@ -3,7 +3,7 @@ package server
 import akka.actor.Actor
 import spray.http.HttpMethods
 import spray.can.Http
-import retrieve.FreeBase.{MyTVShowQueryProtocol, FreeBaseQueries, TVShowQuery}
+import retrieve.freebase.{MyTVShowQueryProtocol, FreeBaseQueries, TVShowQuery}
 import spray.http.{HttpEntity, Uri}
 import spray.httpx.SprayJsonSupport._
 import spray.http.HttpRequest
