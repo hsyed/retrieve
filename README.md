@@ -1,6 +1,10 @@
 retrieve
 ========
 
+This codebase was ued to autonamously(well almost) copy lists of movies matching certain predicates from [freebase to trakt](http://trakt.tv/user/hsyed/lists). 12 years of Cannes, 50 ish films per year, on average 5 films missing from trakt. But it will grow in other directions. The trakt code needs a lot of refactoring :D The code under the freebase package is beggening to mature.
+
+----
+
 Spray Service for Creating Media Lists.
 
 Interface for pulling lists from Freebase and other sources, and doing interesting things with them. Will keep fleshing it out. 
