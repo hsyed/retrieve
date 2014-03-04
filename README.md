@@ -7,7 +7,7 @@ This codebase was used to autonamously(well almost) copy lists of movies matchin
 
 The functionality will grow in other directions. 
 
-The trakt code needs a lot of refactoring :D The code under the freebase package is beggening to mature.
+The trakt code needs a lot of refactoring :D The code under the freebase package better to look at.
 
 ----
 
