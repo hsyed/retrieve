@@ -5,7 +5,7 @@ Spray Service for Creating Media Lists.
 
 This codebase was used to autonamously(well almost) copy lists of movies matching certain predicates from [freebase to trakt](http://trakt.tv/user/hsyed/lists). 12 years of Cannes, 50 ish films per year, on average 5 films missing from trakt. 
 
-The funcctionality will grow in other directions. 
+The functionality will grow in other directions. 
 
 The trakt code needs a lot of refactoring :D The code under the freebase package is beggening to mature.
 
