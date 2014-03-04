@@ -6,6 +6,8 @@ import scalaz._
 import Scalaz._
 import retrieve.freebase
 
+// TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
+// 
 
 /**
  * Created by hassan on 28/02/2014.
@@ -29,6 +31,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
   private object QueryToJson {
     private val isDatePredicate = (x: QueryTag) => x.isInstanceOf[BetweenDates]
     private val isExclusionAwardPredicate = (x: QueryTag) => x.isInstanceOf[ExcludeAwardWithName]
+    private val isExclusionGenrePredicate = (x: QueryTag) => x.isInstanceOf[ExcludeGenreWithName]
     private val hasSingleYearPredicate = (x: MovieQuery) => {
       val dates = x.predicates.filter(isDatePredicate)
       if (dates.size != 1)
@@ -79,7 +82,8 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
       "directed_by" -> JsArray(),
       "subjects" -> JsArray(),
       "trailers" -> JsArray(),
-      "limit" -> JsNumber(500)
+      "limit" -> JsNumber(500),
+      "/imdb/topic/title_id" -> JsArray()
     )
 
     val processTitle = new Processor {
@@ -133,9 +137,22 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
       }
 
       override def toJson(x: MovieQuery) = {
+        val new_shape = {
+          val exclussions = x.predicates.filter(isExclusionGenrePredicate).flatMap(_.name.map(JsString(_)))
+
+            if (exclussions.nonEmpty) default_shape ++ Map(
+              "exclude:genre" -> JsArray(JsObject(
+                "optional" -> JsString("forbidden"),
+                "name|=" -> JsArray(exclussions)
+              ))
+            )
+            else default_shape
+
+        }
+
         val datelow = x.predicates.filter(isDatePredicate).head.name.head
         val datehigh = (datelow.toInt + 1).toString
-        mkWithShape(default_shape)(
+        mkWithShape(new_shape)(
           "film_festivals" -> JsArray(JsObject(
             "festival" -> JsString(x.specifier.name.head),
             "opening_date>" -> JsString(datelow),
@@ -169,17 +186,22 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
         case Some(JsArray(awards)) => awards.map(_.asJsObject.fields("award").asJsObject.fields("name").toString())
         case None => Nil
       }
+      val release_date = tl.fields.get("initial_release_date") match {
+        case Some(JsString(d)) => d
+        case _ => ""
+      }
 
-      tl.getFields("name", "initial_release_date", "genre", "directed_by", "subjects", "trailers") match {
-        case Seq(JsString(name), JsString(release_date), JsArray(genre), JsArray(directed_by), JsArray(subjects), JsArray(trailers)) =>
+      tl.getFields("name", "genre", "directed_by", "subjects", "trailers", "/imdb/topic/title_id") match {
+        case Seq(JsString(name),  JsArray(genre), JsArray(directed_by), JsArray(subjects), JsArray(trailers), JsArray(imdb_tid)) =>
           MovieDescriptor(name,
             release_date,
             genre.asInstanceOf[List[String]],
             directed_by.asInstanceOf[List[String]],
             subjects.asInstanceOf[List[String]],
             trailers.asInstanceOf[List[String]],
-            awards
-            )
+            awards,
+            imdb_tid.map(_.asInstanceOf[JsString].value)
+          )
       }
 
     }
@@ -212,6 +234,8 @@ case class Awards(name: List[String] = Nil) extends CanSpecify
 case class Festival(name: List[String]) extends CanSpecify
 
 case class ExcludeAwardWithName(name: List[String]) extends QueryTag
+
+case class ExcludeGenreWithName(name: List[String]) extends QueryTag
 
 case class BetweenDates(name: List[String]) extends QueryTag
 

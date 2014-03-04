@@ -14,11 +14,10 @@ package object freebase
   with spray.httpx.SprayJsonSupport
   with MovieDescriptorOps
   with NamedQueries
+  with Utility
   {
   implicit val as =  server.actorSystem //AkkaSystem.actorSystem
   implicit val as_d = server.actorSystem.dispatcher
 
-  implicit class await[T](f : Future[T]) {
-    def await = Await.result(f,5.seconds)
-  }
+
 }

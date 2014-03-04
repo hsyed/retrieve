@@ -6,7 +6,8 @@ import Scalaz._
  * Created by hassan on 28/02/2014.
  */
 case class MovieDescriptor( title : String, initialReleaseDate: String, genres: List[String], directedBy : List[String],
-                            subjects : List[String],trailers : List[String], award : List[String])
+                            subjects : List[String],trailers : List[String], award : List[String],
+                            imdb_id : List[String])
 
 case class MovieDescriptors(md : List[MovieDescriptor])
 

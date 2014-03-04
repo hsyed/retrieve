@@ -8,5 +8,5 @@ package object server {
   implicit val actorSystem = ActorSystem()
   implicit val dispatcher = actorSystem.dispatcher
 
-  implicit val defaultTimeout : akka.util.Timeout = 3.seconds
+  implicit val defaultTimeout : akka.util.Timeout = 20.seconds
 }

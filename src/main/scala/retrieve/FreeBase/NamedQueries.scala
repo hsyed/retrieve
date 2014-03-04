@@ -19,7 +19,12 @@ trait NamedQueries {
   }
   object CannesFestival extends NamedQuery {
     def apply(year: String) = FreeBaseQueries.movieQuery(
-      Festival("Cannes Film Festival") WITH BetweenDates(year)
+      Festival("Cannes Film Festival")
+        WITH BetweenDates(year)
+        WITH ExcludeGenreWithName(List (
+          "Short Film"
+        ))
+
     )
   }
 }
