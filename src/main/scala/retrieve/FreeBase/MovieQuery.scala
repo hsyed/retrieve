@@ -24,10 +24,11 @@ import retrieve.freebase
 //}
 //}]
 //}]
-trait MyMovieQueryProtocol extends DefaultJsonProtocol {
+trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
 
   private object QueryToJson {
     private val isDatePredicate = (x: QueryTag) => x.isInstanceOf[BetweenDates]
+    private val isExclusionAwardPredicate = (x: QueryTag) => x.isInstanceOf[ExcludeAwardWithName]
     private val hasSingleYearPredicate = (x: MovieQuery) => {
       val dates = x.predicates.filter(isDatePredicate)
       if (dates.size != 1)
@@ -65,7 +66,8 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
       def toJson(q: MovieQuery): JsValue
 
       final def apply(q: MovieQuery): JsValue = {
-        validator(q); toJson(q)
+        validator(q);
+        toJson(q)
       }
     }
 
@@ -77,11 +79,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
       "directed_by" -> JsArray(),
       "subjects" -> JsArray(),
       "trailers" -> JsArray(),
-      "/award/award_winning_work/awards_won" -> JsArray(JsObject(
-        "award" -> JsNull,
-        "ceremony" -> JsNull,
-        "year" -> JsNull
-      ))
+      "limit" -> JsNumber(500)
     )
 
     val processTitle = new Processor {
@@ -99,15 +97,33 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
         if (x.specifier.name.size != 1) throw new Exception("Awards should be present with a single parameter.")
       }
 
-      override def toJson(x: MovieQuery): JsValue = mkWithShape(default_shape)(
-        "x:type" -> JsString("/award/award_winning_work"),
-        "y:/award/award_winning_work/awards_won" -> JsArray(JsObject(
-          "award" -> JsArray(JsObject(
+      override def toJson(x: MovieQuery): JsValue = {
+        val award_part: Map[String, JsValue] = {
+          val exclusionList = x.predicates.filter(isExclusionAwardPredicate).flatMap(_.name.map(JsString(_)))
+          val exclussions =
+            if (exclusionList.nonEmpty) Map(
+              "exclude:award" -> JsObject(
+                "optional" -> JsString("forbidden"),
+                "name|=" -> JsArray(
+                  exclusionList
+                )
+              ))
+            else Map[String, JsValue]()
+
+          val award_part_inside = Map("award" -> JsObject(
+            "name" -> JsNull,
             "category_of" -> JsString(x.specifier.name.head)
-          )),
-          "year" -> JsString(x.predicates.filter(isDatePredicate).head.name.head)
-        ))
-      )
+          ),
+            "year" -> JsString(x.predicates.filter(isDatePredicate).head.name.head)
+          )
+          award_part_inside ++ exclussions
+        }
+
+        mkWithShape(default_shape)(
+          "x:type" -> JsString("/award/award_winning_work"),
+          "/award/award_winning_work/awards_won" -> JsArray(JsObject(award_part))
+        )
+      }
     }
 
     val processFestival = new Processor {
@@ -115,15 +131,16 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
         if (!hasSingleYearPredicate(x)) throw new Exception("Film Festivals as a specifier should contain a single date predicate, and this predicate should be a year or a year range.")
         if (x.specifier.name.size != 1) throw new Exception("Only a Single Film Festival can be queried at a time.")
       }
-      override def toJson(x:MovieQuery) = {
+
+      override def toJson(x: MovieQuery) = {
         val datelow = x.predicates.filter(isDatePredicate).head.name.head
         val datehigh = (datelow.toInt + 1).toString
         mkWithShape(default_shape)(
           "film_festivals" -> JsArray(JsObject(
-              "festival" -> JsString(x.specifier.name.head),
-              "opening_date>" -> JsString(datelow),
-              "opening_date<=" -> JsString(datehigh)
-        ) )
+            "festival" -> JsString(x.specifier.name.head),
+            "opening_date>" -> JsString(datelow),
+            "opening_date<=" -> JsString(datehigh)
+          ))
         )
       }
     }
@@ -147,50 +164,77 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol {
   implicit object MovieDescriptorJsonFormat extends RootJsonFormat[MovieDescriptors] {
     def write(d: MovieDescriptors) = ???
 
-    def extractMD(tl : JsObject) : MovieDescriptor = {
+    def extractMD(tl: JsObject): MovieDescriptor = {
+      val awards: List[String] = tl.fields.get("/award/award_winning_work/awards_won") match {
+        case Some(JsArray(awards)) => awards.map(_.asJsObject.fields("award").asJsObject.fields("name").toString())
+        case None => Nil
+      }
+
       tl.getFields("name", "initial_release_date", "genre", "directed_by", "subjects", "trailers") match {
         case Seq(JsString(name), JsString(release_date), JsArray(genre), JsArray(directed_by), JsArray(subjects), JsArray(trailers)) =>
-          MovieDescriptor(name, release_date, genre.asInstanceOf[List[String]],directed_by.asInstanceOf[List[String]],subjects.asInstanceOf[List[String]], trailers.asInstanceOf[List[String]])
+          MovieDescriptor(name,
+            release_date,
+            genre.asInstanceOf[List[String]],
+            directed_by.asInstanceOf[List[String]],
+            subjects.asInstanceOf[List[String]],
+            trailers.asInstanceOf[List[String]],
+            awards
+            )
       }
+
     }
 
     def read(d: JsValue): MovieDescriptors = {
-       val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
-          val movies= resultAsArray.elements.map {tl =>extractMD(tl.asJsObject)}.toList
-          MovieDescriptors(movies)
+      val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
+      val movies = resultAsArray.elements.map {
+        tl => extractMD(tl.asJsObject)
+      }.toList
+      MovieDescriptors(movies)
     }
   }
+
 }
 
 trait QueryTag {
-  val name : List[String]
+  val name: List[String]
 }
+
 trait CanSpecify extends QueryTag
 
-case class Actor(name : List[String] )        extends CanSpecify
-case class Title(name : List[String] )        extends CanSpecify
-case class Genre(name : List[String] )        extends CanSpecify
-case class Awards(name : List[String] = Nil ) extends CanSpecify
-case class Festival(name : List[String])      extends CanSpecify
-case class BetweenDates(name: List[String]  ) extends QueryTag
+case class Actor(name: List[String]) extends CanSpecify
 
+case class Title(name: List[String]) extends CanSpecify
+
+case class Genre(name: List[String]) extends CanSpecify
+
+case class Awards(name: List[String] = Nil) extends CanSpecify
+
+case class Festival(name: List[String]) extends CanSpecify
+
+case class ExcludeAwardWithName(name: List[String]) extends QueryTag
+
+case class BetweenDates(name: List[String]) extends QueryTag
 
 
 trait QueryElement
 
-case class MovieQuerySpecifier(value : CanSpecify) {
-  def WITH(right: QueryTag) : MovieQuery = MovieQuery(this.value,List(right))
-  def AND(right: QueryTag) : MovieQuery = WITH(right)
+case class MovieQuerySpecifier(value: CanSpecify) {
+  def WITH(right: QueryTag): MovieQuery = MovieQuery(this.value, List(right))
+
+  def AND(right: QueryTag): MovieQuery = WITH(right)
 }
 
-case class MovieQuery(specifier : CanSpecify, predicates : List[QueryTag]) {
-  def WITH(right : QueryTag) : MovieQuery = this.copy(predicates = right :: this.predicates)
-  def AND(right: QueryTag) : MovieQuery = WITH(right)
+case class MovieQuery(specifier: CanSpecify, predicates: List[QueryTag]) {
+  def WITH(right: QueryTag): MovieQuery = this.copy(predicates = right :: this.predicates)
+
+  def AND(right: QueryTag): MovieQuery = WITH(right)
 }
 
 trait MovieQueryOps {
-  implicit def makeSpecifierFromTag[T <: CanSpecify](value : T) = MovieQuerySpecifier(value)
-  implicit def makeQueryFromSpecifier(value : MovieQuerySpecifier) = MovieQuery(value.value,Nil)
+  implicit def makeSpecifierFromTag[T <: CanSpecify](value: T) = MovieQuerySpecifier(value)
+
+  implicit def makeQueryFromSpecifier(value: MovieQuerySpecifier) = MovieQuery(value.value, Nil)
+
   implicit def strToSetList(value: String) = List(value)
 }
 

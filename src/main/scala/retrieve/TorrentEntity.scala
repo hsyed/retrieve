@@ -18,7 +18,8 @@ trait TorrentEntity {
   def seeders : Int
   def leachers : Int
 
-  override def toString : String = f"name : $name, size : $size, s : $seeders"
+  override def toString : String =
+    f"name : $name, size : $size, s : $seeders"
 }
 
 object NameTools {

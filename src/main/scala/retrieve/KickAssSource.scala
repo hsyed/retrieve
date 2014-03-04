@@ -23,7 +23,9 @@ trait TorrentSource extends SprayClient {
   def makeQueryPart(query : TorrentQuery) : String
 
   def printBlanketQueryResult(q:String) = extractBlanketQueryFuture(q) onComplete {
-    case Success(result) => result.foreach(println(_))
+    case Success(result) =>
+      if(result.isEmpty) println("No results returned")
+      else result.foreach(println(_))
     case Failure(t) => println(t.getMessage)
   }
 }

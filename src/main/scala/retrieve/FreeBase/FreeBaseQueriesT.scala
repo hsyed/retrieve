@@ -30,6 +30,8 @@ sealed trait JsonApiQuery {
   = doQuery(sendReceive ~> unmarshal[caseType])
 
   def awaitShow(implicit um: FromResponseUnmarshaller[caseType], sh: Show[caseType]) = asString.await.asString
+
+  def uri = req.uri.query.get("query")
 }
 
 //TODO Parse Error responses
