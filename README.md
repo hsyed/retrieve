@@ -15,6 +15,29 @@ I have only worked on this for a few hours =D
     scala> val qq = FreeBaseQueries.movieQuery(q).asCase.await
     scala> FreeBaseQueries.movieQuery(q).asJson.await
     scala> FreeBaseQueries.movieQuery(q).asString.await
+    
+with named queries 
+
+    scala> import retrieve.freebase._
+    import retrieve.freebase._
+    
+    scala> println(CannesFestival("1990").awaitShow)
+    1990-05       Wild at Heart
+    1990-05-11    Dreams
+    1989-11-15    The Little Mermaid
+    1989-10-11    Longtime Companion
+    1990-03-28    Cyrano de Bergerac
+    1990-01-31    The Voice of the Moon
+    1990-11-21    Hidden Agenda
+    1990-05-06    Korczak
+    1990-04-28    The Sting of Death
+    1990          The Lunch Date
+    1990-09-07    Everybody's Fine
+    1989-12       Interrogation
+    1990          Mother
+    1990-09-07    Taxi Blues
+    1989          Freeze Die Come to Life
+    1990-04-06    On Tour
 
 or 
 
