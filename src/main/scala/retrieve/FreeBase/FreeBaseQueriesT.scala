@@ -9,6 +9,7 @@ import scala.concurrent.Future
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.http.{HttpEntity, Uri}
 import spray.http.HttpRequest
+import server._
 
 
 /**
@@ -25,6 +26,12 @@ sealed trait JsonApiQuery {
   Future[HttpEntity] = asCase.map(x => HttpEntity(x.show.toString()))
 
   def asJson: Future[HttpEntity] = doQuery(sendReceive).map(_.entity)
+
+  def asCleanJson(implicit um: FromResponseUnmarshaller[caseType], marsh: RootJsonFormat[caseType], sh: Show[caseType])
+    : Future[HttpEntity] = asCase.map( x=> {
+    println(x.toJson.compactPrint)
+    HttpEntity(x.toJson.prettyPrint)
+  })
 
   def asCase(implicit unmarsh: FromResponseUnmarshaller[caseType]): Future[caseType]
   = doQuery(sendReceive ~> unmarshal[caseType])

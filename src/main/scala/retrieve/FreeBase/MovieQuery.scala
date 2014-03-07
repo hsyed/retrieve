@@ -1,13 +1,9 @@
 package retrieve.freebase
 
 import spray.json._
-import scala.util.matching._
-import scalaz._
-import Scalaz._
-import retrieve.freebase
 
 // TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
-// 
+//
 
 /**
  * Created by hassan on 28/02/2014.
@@ -49,6 +45,16 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
           }
       }
     }
+
+    def addOptionalAward(input: Map[String, JsValue]): Map[String, JsValue] = input ++ Map(
+      "/award/award_winning_work/awards_won" -> JsArray(JsObject(
+        "optional" -> JsString("optional"),
+        "award" -> JsObject (
+          "name" -> JsNull
+        )
+      ))
+    )
+
 
     private val hasSingleSpecifierValue = (_: MovieQuery).specifier.name.size == 1
 
@@ -140,19 +146,18 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
         val new_shape = {
           val exclussions = x.predicates.filter(isExclusionGenrePredicate).flatMap(_.name.map(JsString(_)))
 
-            if (exclussions.nonEmpty) default_shape ++ Map(
-              "exclude:genre" -> JsArray(JsObject(
-                "optional" -> JsString("forbidden"),
-                "name|=" -> JsArray(exclussions)
-              ))
-            )
-            else default_shape
-
+          if (exclussions.nonEmpty) default_shape ++ Map(
+            "exclude:genre" -> JsArray(JsObject(
+              "optional" -> JsString("forbidden"),
+              "name|=" -> JsArray(exclussions)
+            ))
+          )
+          else default_shape
         }
 
         val datelow = x.predicates.filter(isDatePredicate).head.name.head
         val datehigh = (datelow.toInt + 1).toString
-        mkWithShape(new_shape)(
+        mkWithShape(addOptionalAward(new_shape))(
           "film_festivals" -> JsArray(JsObject(
             "festival" -> JsString(x.specifier.name.head),
             "opening_date>" -> JsString(datelow),
@@ -179,31 +184,36 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
   }
 
   implicit object MovieDescriptorJsonFormat extends RootJsonFormat[MovieDescriptors] {
-    def write(d: MovieDescriptors) = ???
+    def write(d: MovieDescriptors) = {
+      implicit val format = jsonFormat8(MovieDescriptor)
+      JsArray(d.md.map(_.toJson))
+
+    }
 
     def extractMD(tl: JsObject): MovieDescriptor = {
-      val awards: List[String] = tl.fields.get("/award/award_winning_work/awards_won") match {
-        case Some(JsArray(awards)) => awards.map(_.asJsObject.fields("award").asJsObject.fields("name").toString())
+      println(tl.prettyPrint)
+      val awards = tl.fields.get("/award/award_winning_work/awards_won") match {
+        case Some(JsArray(awards)) =>
+          if (awards.nonEmpty) awards.map(_("award")("name").as[String])
+          else Nil
         case None => Nil
       }
+
       val release_date = tl.fields.get("initial_release_date") match {
         case Some(JsString(d)) => d
         case _ => ""
       }
 
-      tl.getFields("name", "genre", "directed_by", "subjects", "trailers", "/imdb/topic/title_id") match {
-        case Seq(JsString(name),  JsArray(genre), JsArray(directed_by), JsArray(subjects), JsArray(trailers), JsArray(imdb_tid)) =>
-          MovieDescriptor(name,
-            release_date,
-            genre.asInstanceOf[List[String]],
-            directed_by.asInstanceOf[List[String]],
-            subjects.asInstanceOf[List[String]],
-            trailers.asInstanceOf[List[String]],
-            awards,
-            imdb_tid.map(_.asInstanceOf[JsString].value)
-          )
-      }
-
+      MovieDescriptor(
+        tl("name").as[String],
+        release_date,
+        tl("genre").as[List[String]],
+        tl("directed_by").as[List[String]],
+        tl("subjects").as[List[String]],
+        tl("trailers").as[List[String]],
+        awards,
+        tl("/imdb/topic/title_id").as[List[String]]
+      )
     }
 
     def read(d: JsValue): MovieDescriptors = {
