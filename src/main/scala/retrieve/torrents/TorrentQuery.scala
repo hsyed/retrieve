@@ -1,4 +1,4 @@
-package retrieve
+package retrieve.torrents
 
 object QueryOrder extends Enumeration {
   type QueryOrder = Value

@@ -5,9 +5,15 @@ package retrieve.freebase
  */
 
 
-trait NamedQuery
+trait NamedQuery {
+  def name : String
+}
+
 trait NamedQueries {
+
   object OscarWinners extends NamedQuery {
+    def name : String = "OscarWinners"
+
     def apply(year : String) = FreeBaseQueries.movieQuery(
       Awards("Academy Awards")
         WITH BetweenDates(year)
@@ -18,6 +24,8 @@ trait NamedQueries {
     )
   }
   object CannesFestival extends NamedQuery {
+    def name : String = "CannesFestival"
+
     def apply(year: String) = FreeBaseQueries.movieQuery(
       Festival("Cannes Film Festival")
         WITH BetweenDates(year)

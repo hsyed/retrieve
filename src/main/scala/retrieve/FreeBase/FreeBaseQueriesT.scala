@@ -10,6 +10,7 @@ import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.http.{HttpEntity, Uri}
 import spray.http.HttpRequest
 import server._
+import spray.httpx.PlayJsonSupport._
 
 
 /**
@@ -27,11 +28,11 @@ sealed trait JsonApiQuery {
 
   def asJson: Future[HttpEntity] = doQuery(sendReceive).map(_.entity)
 
-  def asCleanJson(implicit um: FromResponseUnmarshaller[caseType], marsh: RootJsonFormat[caseType], sh: Show[caseType])
-    : Future[HttpEntity] = asCase.map( x=> {
-    println(x.toJson.compactPrint)
-    HttpEntity(x.toJson.prettyPrint)
-  })
+//  def asCleanJson(implicit um: FromResponseUnmarshaller[caseType], marsh: RootJsonFormat[caseType], sh: Show[caseType])
+//    : Future[HttpEntity] = asCase.map( x=> {
+//    println(x.toJson.compactPrint)
+//    HttpEntity(x.toJson.prettyPrint)
+//  })
 
   def asCase(implicit unmarsh: FromResponseUnmarshaller[caseType]): Future[caseType]
   = doQuery(sendReceive ~> unmarshal[caseType])

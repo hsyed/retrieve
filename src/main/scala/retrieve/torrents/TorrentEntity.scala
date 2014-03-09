@@ -1,4 +1,4 @@
-package retrieve
+package retrieve.torrents
 
 class TorrentSize(val sz : Long) extends AnyVal {
   import TorrentSize._
@@ -36,4 +36,4 @@ object NameTools {
   def ResolutionTag : Option[String] = ???
 }
 
-case class GenericTorrent(name : String, size : TorrentSize, seeders : Int, leachers: Int,  magnetLink : Option[String] = None) extends TorrentEntity
+case class GenericTorrent(name : String, size : TorrentSize, seeders : Int, leachers: Int,  magnetLink : Option[String] = None, markedHD : Boolean = false) extends TorrentEntity

@@ -1,4 +1,4 @@
-package retrieve
+package retrieve.torrents
 
 import akka.pattern.ask
 import scala.concurrent.Future

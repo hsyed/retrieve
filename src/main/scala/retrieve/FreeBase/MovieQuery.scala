@@ -23,7 +23,6 @@ import spray.json._
 //}]
 //}]
 trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
-
   private object QueryToJson {
     private val isDatePredicate = (x: QueryTag) => x.isInstanceOf[BetweenDates]
     private val isExclusionAwardPredicate = (x: QueryTag) => x.isInstanceOf[ExcludeAwardWithName]
@@ -183,49 +182,54 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
     def read(value: JsValue) = ???
   }
 
-  implicit object MovieDescriptorJsonFormat extends RootJsonFormat[MovieDescriptors] {
-    def write(d: MovieDescriptors) = {
-      implicit val format = jsonFormat8(MovieDescriptor)
-      JsArray(d.md.map(_.toJson))
-
-    }
-
-    def extractMD(tl: JsObject): MovieDescriptor = {
-      println(tl.prettyPrint)
-      val awards = tl.fields.get("/award/award_winning_work/awards_won") match {
-        case Some(JsArray(awards)) =>
-          if (awards.nonEmpty) awards.map(_("award")("name").as[String])
-          else Nil
-        case None => Nil
-      }
-
-      val release_date = tl.fields.get("initial_release_date") match {
-        case Some(JsString(d)) => d
-        case _ => ""
-      }
-
-      MovieDescriptor(
-        tl("name").as[String],
-        release_date,
-        tl("genre").as[List[String]],
-        tl("directed_by").as[List[String]],
-        tl("subjects").as[List[String]],
-        tl("trailers").as[List[String]],
-        awards,
-        tl("/imdb/topic/title_id").as[List[String]]
-      )
-    }
-
-    def read(d: JsValue): MovieDescriptors = {
-      val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
-      val movies = resultAsArray.elements.map {
-        tl => extractMD(tl.asJsObject)
-      }.toList
-      MovieDescriptors(movies)
-    }
-  }
+//  implicit object MovieDescriptorJsonFormat extends RootJsonFormat[MovieDescriptors] {
+//    def write(d: MovieDescriptors) = {
+//      implicit val format = jsonFormat8(MovieDescriptor)
+//      JsArray(d.md.map(_.toJson))
+//
+//    }
+//
+//    def extractMD(tl: JsObject): MovieDescriptor = {
+//      println(tl.prettyPrint)
+//      val awards = tl.fields.get("/award/award_winning_work/awards_won") match {
+//        case Some(JsArray(awards)) =>
+//          if (awards.nonEmpty) awards.map(_("award")("name").as[String])
+//          else Nil
+//        case None => Nil
+//      }
+//
+//      val release_date = tl.fields.get("initial_release_date") match {
+//        case Some(JsString(d)) => d
+//        case _ => ""
+//      }
+//
+//      MovieDescriptor(
+//        tl("name").as[String],
+//        release_date,
+//        tl("genre").as[List[String]],
+//        tl("directed_by").as[List[String]],
+//        tl("subjects").as[List[String]],
+//        tl("trailers").as[List[String]],
+//        awards,
+//        tl("/imdb/topic/title_id").as[List[String]]
+//      )
+//    }
+//
+//    def read(d: JsValue): MovieDescriptors = {
+//      val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
+//      val movies = resultAsArray.elements.map {
+//        tl => extractMD(tl.asJsObject)
+//      }.toList
+//      MovieDescriptors(movies)
+//    }
+//  }
 
 }
+
+object MovieDescriptorExtractor {
+
+}
+
 
 trait QueryTag {
   val name: List[String]

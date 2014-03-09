@@ -26,41 +26,41 @@ class TopLevelActor extends Actor {
   def receive = {
     case _: Http.Connected => sender ! Http.Register(self)
 
-    case r@HttpRequest(HttpMethods.GET, Uri.Path("/namedlists/cannes"), _, _, _) =>
-      val peer = sender
+//    case r@HttpRequest(HttpMethods.GET, Uri.Path("/namedlists/cannes"), _, _, _) =>
+//      val peer = sender
+//
+//      r.uri.query.get("year") match {
+//        case Some(year) =>
+//
+//          println("here")
+//          CannesFestival(year).asCleanJson onComplete  {
+//            case Success(x) =>
+//
+//              peer ! HttpResponse(entity = x).withHeaders(RawHeader("Access-Control-Allow-Origin","*"))
+//            case Failure(x) => println(f"failure $x")
+//          }
+//
+//        case None => peer ! HttpResponse(entity = "supply a query")
+//        case _ => println("weird")
+//      }
 
-      r.uri.query.get("year") match {
-        case Some(year) =>
-
-          println("here")
-          CannesFestival(year).asCleanJson onComplete  {
-            case Success(x) =>
-
-              peer ! HttpResponse(entity = x).withHeaders(RawHeader("Access-Control-Allow-Origin","*"))
-            case Failure(x) => println(f"failure $x")
-          }
-
-        case None => peer ! HttpResponse(entity = "supply a query")
-        case _ => println("weird")
-      }
-
-    case r@HttpRequest(HttpMethods.GET, Uri.Path("/namedlists/oscars"), _, _, _) =>
-      val peer = sender
-
-      r.uri.query.get("year") match {
-        case Some(year) =>
-
-          println("here")
-          OscarWinners(year).asCleanJson onComplete {
-            case Success(x) =>
-
-              peer ! HttpResponse(entity = x).withHeaders(RawHeader("Access-Control-Allow-Origin", "*"))
-            case Failure(x) => println(f"failure $x")
-          }
-
-        case None => peer ! HttpResponse(entity = "supply a query")
-        case _ => println("weird")
-      }
+//    case r@HttpRequest(HttpMethods.GET, Uri.Path("/namedlists/oscars"), _, _, _) =>
+//      val peer = sender
+//
+//      r.uri.query.get("year") match {
+//        case Some(year) =>
+//
+//          println("here")
+//          OscarWinners(year).asCleanJson onComplete {
+//            case Success(x) =>
+//
+//              peer ! HttpResponse(entity = x).withHeaders(RawHeader("Access-Control-Allow-Origin", "*"))
+//            case Failure(x) => println(f"failure $x")
+//          }
+//
+//        case None => peer ! HttpResponse(entity = "supply a query")
+//        case _ => println("weird")
+//      }
 
     case r@HttpRequest(HttpMethods.GET, Uri.Path("/mql/tv"), _, _, _) =>
       val peer = sender

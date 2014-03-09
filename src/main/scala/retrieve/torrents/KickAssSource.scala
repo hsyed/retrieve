@@ -1,4 +1,4 @@
-package retrieve
+package retrieve.torrents
 
 import com.typesafe.config.{ConfigFactory, Config}
 import scala.concurrent.Future
@@ -10,7 +10,6 @@ import spray.http.HttpResponse
 
 import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
-
 
 
 trait TorrentSource extends SprayClient {
