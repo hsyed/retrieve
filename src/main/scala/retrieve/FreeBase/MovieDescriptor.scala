@@ -1,4 +1,5 @@
 package retrieve.freebase
+import retrieve.moviedb
 import scalaz._
 import Scalaz._
 
@@ -13,6 +14,10 @@ case class MovieList(md : List[MovieDescriptor])
 case class NamedMovieList(name: String, query: String, md : List[MovieDescriptor])
 
 trait MovieDescriptorOps {
+  implicit class NamedMovieListOps(value : NamedMovieList) {
+    def saveDB = moviedb.saveNamedMovieList(value)
+  }
+
   implicit val showMovieDescriptor = new Show[MovieDescriptor] {
     override def shows(movd : MovieDescriptor) : String = { import movd._
       f"$initialReleaseDate%-12s  $title"

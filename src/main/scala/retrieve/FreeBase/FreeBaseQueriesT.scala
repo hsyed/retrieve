@@ -14,15 +14,20 @@ import QueryDSL.MovieQuery
 import play.api.libs.json._
 import spray.json._
 import retrieve.freebase.MovieToJson.FromFreebase
+import retrieve.moviedb
+import scala.concurrent._
 
 
 /**
  * Created by hassan on 27/02/2014.
  */
 
-abstract class JsonApiQuery[T: FromResponseUnmarshaller] {
-  val req: HttpRequest
+trait JsonApiQueryLike[T] {
+  def asCase: Future[T]
+}
 
+abstract class JsonApiQuery[T: FromResponseUnmarshaller] extends JsonApiQueryLike[T] {
+  val req: HttpRequest
 
   def doQuery[Z, X <% ((HttpRequest) => Future[Z])](p: X): Future[Z]
   = p(req)
@@ -47,46 +52,84 @@ abstract class JsonApiQuery[T: FromResponseUnmarshaller] {
   def uri = req.uri.query.get("query")
 }
 
-//TODO Parse Error responses
-object JsonApiQuery {
-  def apply[T: FromResponseUnmarshaller](r: HttpRequest) = new JsonApiQuery[T] {
-    override val req: HttpRequest = r
+abstract class JsonApiQueryWithCache[T: FromResponseUnmarshaller] extends JsonApiQuery[T] {
+  type fromCacheT = () => Future[Option[T]]
+  type toCacheT = (T) => Int
+
+  def fromCache: fromCacheT
+  def toCache : toCacheT
+
+  override def asCase(): Future[T] = {
+    fromCache() flatMap  (_ match {
+      case Some(x) => future {
+        x
+      }
+      case None =>
+        super.asCase().map{ x=>
+          toCache(x)
+          x
+        }
+    })
   }
 }
 
-trait FreeBaseQueriesT {
-  def baseUrl: String
+  //TODO Parse Error responses
+  object JsonApiQuery {
+    def apply[T: FromResponseUnmarshaller](r: HttpRequest) = new JsonApiQuery[T] {
+      override val req: HttpRequest = r
+    }
 
-  def serviceApiUrlSearch: String = f"$baseUrl/search"
+    def apply[T: FromResponseUnmarshaller] (
+      r: HttpRequest,
+      fromCache_ : JsonApiQueryWithCache[T]#fromCacheT,
+      toCache_ : JsonApiQueryWithCache[T]#toCacheT) =
+      new JsonApiQueryWithCache[T] {
+        override val req: HttpRequest = r
 
-  def serviceApiUrlMQLRead: String = f"https://$baseUrl/freebase/v1/mqlread"
-
-  def mkMqlUri: Uri = Uri(f"$serviceApiUrlMQLRead")
-
-  def mkQuery(q: String) = mkMqlUri withQuery ("query" -> q)
-}
-
-object FreeBaseQueries extends FreeBaseQueriesT {
-  val baseUrl = "www.googleapis.com"
-
-  def tVShowQuery(q: TVShowQuery) = freebase.JsonApiQuery[TVShowDescriptor](
-    Get(mkQuery("TODO : REMOVE ME"))
-  )
-
-  def movieQuery(q: MovieQuery, defaultReleaseDate: String = "") = {
-    implicit val reader = new FromFreebase.MovieDescriptorsFromFreeBase(defaultReleaseDate)
-
-    val g = Get(mkQuery(Json.toJson(q).toString))
-    freebase.JsonApiQuery[MovieList](g)
+        def fromCache = fromCache_
+        def toCache = toCache_
+      }
   }
 
-  def namedListQuery(q: MovieQuery, listName: String, listQuery: String, defaultReleaseDate: String = "") = {
-    implicit val reader = new FromFreebase.NamedMovieListFromFreeBase(
-      listName, listQuery, defaultReleaseDate)
+  trait FreeBaseQueriesT {
+    def baseUrl: String
 
-    val g = Get(mkQuery(Json.toJson(q).toString))
-    freebase.JsonApiQuery[NamedMovieList](g)
+    def serviceApiUrlSearch: String = f"$baseUrl/search"
+
+    def serviceApiUrlMQLRead: String = f"https://$baseUrl/freebase/v1/mqlread"
+
+    def mkMqlUri: Uri = Uri(f"$serviceApiUrlMQLRead")
+
+    def mkQuery(q: String) = mkMqlUri withQuery ("query" -> q)
   }
-}
+
+  object FreeBaseQueries extends FreeBaseQueriesT {
+    val baseUrl = "www.googleapis.com"
+
+    def tVShowQuery(q: TVShowQuery) = freebase.JsonApiQuery[TVShowDescriptor](
+      Get(mkQuery("TODO : REMOVE ME"))
+    )
+
+    def movieQuery(q: MovieQuery, defaultReleaseDate: String = "") = {
+      implicit val reader = new FromFreebase.MovieDescriptorsFromFreeBase(defaultReleaseDate)
+
+      val g = Get(mkQuery(Json.toJson(q).toString))
+      freebase.JsonApiQuery[MovieList](g)
+    }
+
+    def namedListQuery(q: MovieQuery, listName: String, listQuery: String, defaultReleaseDate: String = "")
+    : JsonApiQueryLike[NamedMovieList] = {
+      implicit val reader = new FromFreebase.NamedMovieListFromFreeBase(
+        listName, listQuery, defaultReleaseDate)
+
+      val movieFromCache = () => future {
+        moviedb.getNamedMovieList(listName, listQuery)
+      }
+      val saveMovies = (x: NamedMovieList) => x.saveDB
+
+      val g = Get(mkQuery(Json.toJson(q).toString))
+      freebase.JsonApiQuery[NamedMovieList](g, movieFromCache,saveMovies)
+    }
+  }
 
 

@@ -52,8 +52,6 @@ object MovieToJson {
         )
       }
     }
-
   }
-
 }
 

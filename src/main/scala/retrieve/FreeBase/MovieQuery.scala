@@ -4,9 +4,6 @@ import play.api.libs.json._
 
 import QueryDSL._
 
-// TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
-//
-
 /**
  * Created by hassan on 28/02/2014.
  */

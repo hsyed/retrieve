@@ -30,3 +30,5 @@ libraryDependencies += "com.github.tminglei" % "slick-pg_play-json_2.10" % "0.5.
 libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1100-jdbc41"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.1.0" % "test"
+
+libraryDependencies += "com.jolbox" % "bonecp" % "0.8.0.RELEASE"
