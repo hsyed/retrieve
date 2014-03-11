@@ -8,7 +8,7 @@ import retrieve.freebase.QueryDSL.Festival
 /**
  * Created by hassan on 03/03/2014.
  */
-
+// TODO (Investigate) : Without parenthesis queries need to be written with WITH and AND on same line as left node.
 
 trait NamedQuery {
   def name : String
@@ -38,8 +38,8 @@ trait NamedQueries {
       ))
     )
 
-    def apply(year: String) = FreeBaseQueries.movieQuery(
-      query(year)
+    def apply(year: String) = FreeBaseQueries.namedListQuery(
+      query(year),name,f"year=$year",year
     )
   }
 }

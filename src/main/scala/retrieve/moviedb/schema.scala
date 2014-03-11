@@ -20,5 +20,4 @@ object Schema {
 }
 
   val dbMovieDescriptor = TableQuery[DBMovieDescriptor]
-
 }

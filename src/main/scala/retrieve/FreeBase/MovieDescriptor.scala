@@ -9,7 +9,8 @@ case class MovieDescriptor( mid: String, title : String, initialReleaseDate: Str
                             subjects : List[String],trailers : List[String], award : List[String],
                             imdb_id : List[String])
 
-case class NamedMovieList(md : List[MovieDescriptor])
+case class MovieList(md : List[MovieDescriptor])
+case class NamedMovieList(name: String, query: String, md : List[MovieDescriptor])
 
 trait MovieDescriptorOps {
   implicit val showMovieDescriptor = new Show[MovieDescriptor] {

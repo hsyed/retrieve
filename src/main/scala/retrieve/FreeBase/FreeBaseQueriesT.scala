@@ -13,33 +13,34 @@ import spray.httpx.PlayJsonSupport._
 import QueryDSL.MovieQuery
 import play.api.libs.json._
 import spray.json._
+import retrieve.freebase.MovieToJson.FromFreebase
 
 
 /**
  * Created by hassan on 27/02/2014.
  */
 
-abstract class JsonApiQuery[T : FromResponseUnmarshaller] {
+abstract class JsonApiQuery[T: FromResponseUnmarshaller] {
   val req: HttpRequest
 
 
   def doQuery[Z, X <% ((HttpRequest) => Future[Z])](p: X): Future[Z]
-    = p(req)
+  = p(req)
 
   def asString(implicit sh: Show[T]): Future[HttpEntity]
-    = asCase.map(x => HttpEntity(x.show.toString()))
+  = asCase.map(x => HttpEntity(x.show.toString()))
 
   def asJson: Future[HttpEntity]
-    = doQuery(sendReceive).map(_.entity)
+  = doQuery(sendReceive).map(_.entity)
 
-//  def asCleanJson(implicit sh: Show[T])
-//    : Future[HttpEntity] = asCase.map( x=> {
-//    println(x.toJson.compactPrint)
-//    HttpEntity(x.toJson.prettyPrint)
-//  })
+  //  def asCleanJson(implicit sh: Show[T])
+  //    : Future[HttpEntity] = asCase.map( x=> {
+  //    println(x.toJson.compactPrint)
+  //    HttpEntity(x.toJson.prettyPrint)
+  //  })
 
   def asCase(): Future[T]
-    = doQuery(sendReceive ~> unmarshal[T])
+  = doQuery(sendReceive ~> unmarshal[T])
 
   def awaitShow(implicit sh: Show[T]) = asString.await.asString
 
@@ -48,7 +49,7 @@ abstract class JsonApiQuery[T : FromResponseUnmarshaller] {
 
 //TODO Parse Error responses
 object JsonApiQuery {
-  def apply[T : FromResponseUnmarshaller](r: HttpRequest) = new JsonApiQuery[T] {
+  def apply[T: FromResponseUnmarshaller](r: HttpRequest) = new JsonApiQuery[T] {
     override val req: HttpRequest = r
   }
 }
@@ -69,15 +70,22 @@ object FreeBaseQueries extends FreeBaseQueriesT {
   val baseUrl = "www.googleapis.com"
 
   def tVShowQuery(q: TVShowQuery) = freebase.JsonApiQuery[TVShowDescriptor](
-      Get(mkQuery("TODO : REMOVE ME"))
+    Get(mkQuery("TODO : REMOVE ME"))
   )
 
-  def movieQuery(q: MovieQuery) = {
-    import MovieToJson.FromFreebase._
-    println(q)
-    println(Json.toJson(q))
+  def movieQuery(q: MovieQuery, defaultReleaseDate: String = "") = {
+    implicit val reader = new FromFreebase.MovieDescriptorsFromFreeBase(defaultReleaseDate)
+
     val g = Get(mkQuery(Json.toJson(q).toString))
-    freebase.JsonApiQuery[NamedMovieList] (g)
+    freebase.JsonApiQuery[MovieList](g)
+  }
+
+  def namedListQuery(q: MovieQuery, listName: String, listQuery: String, defaultReleaseDate: String = "") = {
+    implicit val reader = new FromFreebase.NamedMovieListFromFreeBase(
+      listName, listQuery, defaultReleaseDate)
+
+    val g = Get(mkQuery(Json.toJson(q).toString))
+    freebase.JsonApiQuery[NamedMovieList](g)
   }
 }
 
