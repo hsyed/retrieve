@@ -11,6 +11,7 @@ import spray.http.{HttpEntity, Uri}
 import spray.http.HttpRequest
 import server._
 import spray.httpx.PlayJsonSupport._
+import QueryDSL.MovieQuery
 
 
 /**

@@ -1,6 +1,7 @@
 package retrieve.freebase
 
 import spray.json._
+import QueryDSL._
 //import play.api.libs.json._
 
 // TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
@@ -169,99 +170,6 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
 
     def read(value: JsValue) = ???
   }
-
-//  implicit object MovieDescriptorJsonFormat extends RootJsonFormat[MovieDescriptors] {
-//    def write(d: MovieDescriptors) = {
-//      implicit val format = jsonFormat8(MovieDescriptor)
-//      JsArray(d.md.map(_.toJson))
-//
-//    }
-//
-//    def extractMD(tl: JsObject): MovieDescriptor = {
-//      println(tl.prettyPrint)
-//      val awards = tl.fields.get("/award/award_winning_work/awards_won") match {
-//        case Some(JsArray(awards)) =>
-//          if (awards.nonEmpty) awards.map(_("award")("name").as[String])
-//          else Nil
-//        case None => Nil
-//      }
-//
-//      val release_date = tl.fields.get("initial_release_date") match {
-//        case Some(JsString(d)) => d
-//        case _ => ""
-//      }
-//
-//      MovieDescriptor(
-//        tl("name").as[String],
-//        release_date,
-//        tl("genre").as[List[String]],
-//        tl("directed_by").as[List[String]],
-//        tl("subjects").as[List[String]],
-//        tl("trailers").as[List[String]],
-//        awards,
-//        tl("/imdb/topic/title_id").as[List[String]]
-//      )
-//    }
-//
-//    def read(d: JsValue): MovieDescriptors = {
-//      val resultAsArray = d.asJsObject.fields("result").asInstanceOf[JsArray]
-//      val movies = resultAsArray.elements.map {
-//        tl => extractMD(tl.asJsObject)
-//      }.toList
-//      MovieDescriptors(movies)
-//    }
-//  }
-
-}
-
-object MovieDescriptorExtractor {
-
-}
-
-
-trait QueryTag {
-  val name: List[String]
-}
-
-trait CanSpecify extends QueryTag
-
-case class Actor(name: List[String]) extends CanSpecify
-
-case class Title(name: List[String]) extends CanSpecify
-
-case class Genre(name: List[String]) extends CanSpecify
-
-case class Awards(name: List[String] = Nil) extends CanSpecify
-
-case class Festival(name: List[String]) extends CanSpecify
-
-case class ExcludeAwardWithName(name: List[String]) extends QueryTag
-
-case class ExcludeGenreWithName(name: List[String]) extends QueryTag
-
-case class BetweenDates(name: List[String]) extends QueryTag
-
-
-trait QueryElement
-
-case class MovieQuerySpecifier(value: CanSpecify) {
-  def WITH(right: QueryTag): MovieQuery = MovieQuery(this.value, List(right))
-
-  def AND(right: QueryTag): MovieQuery = WITH(right)
-}
-
-case class MovieQuery(specifier: CanSpecify, predicates: List[QueryTag]) {
-  def WITH(right: QueryTag): MovieQuery = this.copy(predicates = right :: this.predicates)
-
-  def AND(right: QueryTag): MovieQuery = WITH(right)
-}
-
-trait MovieQueryOps {
-  implicit def makeSpecifierFromTag[T <: CanSpecify](value: T) = MovieQuerySpecifier(value)
-
-  implicit def makeQueryFromSpecifier(value: MovieQuerySpecifier) = MovieQuery(value.value, Nil)
-
-  implicit def strToSetList(value: String) = List(value)
 }
 
 

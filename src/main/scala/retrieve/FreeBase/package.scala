@@ -2,6 +2,7 @@ package retrieve
 import scala.concurrent._
 import scala.concurrent.duration._
 import server._
+import retrieve.freebase.QueryDSL.MovieQueryOps
 
 
 /**

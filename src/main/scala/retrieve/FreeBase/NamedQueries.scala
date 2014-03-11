@@ -1,4 +1,5 @@
 package retrieve.freebase
+import QueryDSL._
 
 /**
  * Created by hassan on 03/03/2014.
