@@ -1,5 +1,9 @@
 package retrieve.freebase
-import QueryDSL._
+import retrieve.freebase.QueryDSL._
+import retrieve.freebase.QueryDSL.BetweenDates
+import retrieve.freebase.QueryDSL.Awards
+import retrieve.freebase.QueryDSL.ExcludeAwardWithName
+import retrieve.freebase.QueryDSL.Festival
 
 /**
  * Created by hassan on 03/03/2014.
@@ -26,14 +30,16 @@ trait NamedQueries {
   }
   object CannesFestival extends NamedQuery {
     def name : String = "CannesFestival"
+    def query(year: String) = (
+      Festival("Cannes Film Festival")
+      WITH BetweenDates (year)
+      WITH ExcludeGenreWithName (List(
+        "Short Film"
+      ))
+    )
 
     def apply(year: String) = FreeBaseQueries.movieQuery(
-      Festival("Cannes Film Festival")
-        WITH BetweenDates(year)
-        WITH ExcludeGenreWithName(List (
-          "Short Film"
-        ))
-
+      query(year)
     )
   }
 }

@@ -11,12 +11,12 @@ import retrieve.freebase.QueryDSL.MovieQueryOps
 package object freebase
   extends TVShowOps
   with MyTVShowQueryProtocol
-  with MovieQueryOps
+  with QueryDSL.MovieQueryOps
   with spray.httpx.SprayJsonSupport
   with MovieDescriptorOps
   with NamedQueries
   with Utility
-  with MyMovieQueryProtocol
+  with MyMovieQueryProtocol.QueryToJson
   {
 
 

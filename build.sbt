@@ -28,3 +28,5 @@ libraryDependencies += "com.github.tminglei" % "slick-pg_2.10" % "0.5.1.3"
 libraryDependencies += "com.github.tminglei" % "slick-pg_play-json_2.10" % "0.5.1.3"
 
 libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1100-jdbc41"
+
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.1.0" % "test"

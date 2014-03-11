@@ -1,8 +1,8 @@
 package retrieve.freebase
 
-import spray.json._
+import play.api.libs.json._
+
 import QueryDSL._
-//import play.api.libs.json._
 
 // TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
 //
@@ -10,8 +10,9 @@ import QueryDSL._
 /**
  * Created by hassan on 28/02/2014.
  */
-trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
-  private object QueryToJson {
+object MyMovieQueryProtocol {
+
+  private object QueryToJsonInternal {
     private val isDatePredicate = (x: QueryTag) => x.isInstanceOf[BetweenDates]
     private val isExclusionAwardPredicate = (x: QueryTag) => x.isInstanceOf[ExcludeAwardWithName]
     private val isExclusionGenrePredicate = (x: QueryTag) => x.isInstanceOf[ExcludeGenreWithName]
@@ -34,9 +35,9 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
     }
 
     def addOptionalAward(input: Map[String, JsValue]): Map[String, JsValue] = input ++ Map(
-      "/award/award_winning_work/awards_won" -> JsArray(JsObject(
+      "/award/award_winning_work/awards_won" -> Json.arr(Json.obj(
         "optional" -> JsString("optional"),
-        "award" -> JsObject (
+        "award" -> Json.obj(
           "name" -> JsNull
         )
       ))
@@ -46,7 +47,10 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
     private val hasSingleSpecifierValue = (_: MovieQuery).specifier.name.size == 1
 
     trait Processor {
-      protected def mkWithShape(shape: Map[String, JsValue])(values: (String, JsValue)*) = JsArray(JsObject(shape ++ values.toMap))
+      protected def mkWithShape(shape: Map[String, JsValue])(values: (String, JsValue)*) =
+        JsArray(Seq(JsObject(
+          (shape ++ values.toMap).toSeq
+        )))
 
       protected def mkDatePredicate(q: MovieQuery): List[(String, JsValue)] = q.predicates.filter(isDatePredicate).head match {
         case BetweenDates(x :: Nil) => List("initial_release_date" -> JsString(x))
@@ -100,15 +104,13 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
           val exclusionList = x.predicates.filter(isExclusionAwardPredicate).flatMap(_.name.map(JsString(_)))
           val exclussions =
             if (exclusionList.nonEmpty) Map(
-              "exclude:award" -> JsObject(
+              "exclude:award" -> Json.obj(
                 "optional" -> JsString("forbidden"),
-                "name|=" -> JsArray(
-                  exclusionList
-                )
+                "name|=" -> exclusionList
               ))
             else Map[String, JsValue]()
 
-          val award_part_inside = Map("award" -> JsObject(
+          val award_part_inside = Map("award" -> Json.obj(
             "name" -> JsNull,
             "category_of" -> JsString(x.specifier.name.head)
           ),
@@ -119,7 +121,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
 
         mkWithShape(default_shape)(
           "x:type" -> JsString("/award/award_winning_work"),
-          "/award/award_winning_work/awards_won" -> JsArray(JsObject(award_part))
+          "/award/award_winning_work/awards_won" -> Json.arr(Json.toJson(award_part))
         )
       }
     }
@@ -135,9 +137,9 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
           val exclussions = x.predicates.filter(isExclusionGenrePredicate).flatMap(_.name.map(JsString(_)))
 
           if (exclussions.nonEmpty) default_shape ++ Map(
-            "exclude:genre" -> JsArray(JsObject(
+            "exclude:genre" -> Json.arr(Json.obj(
               "optional" -> JsString("forbidden"),
-              "name|=" -> JsArray(exclussions)
+              "name|=" -> exclussions
             ))
           )
           else default_shape
@@ -146,7 +148,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
         val datelow = x.predicates.filter(isDatePredicate).head.name.head
         val datehigh = (datelow.toInt + 1).toString
         mkWithShape(addOptionalAward(new_shape))(
-          "film_festivals" -> JsArray(JsObject(
+          "film_festivals" -> Json.arr(Json.obj(
             "festival" -> JsString(x.specifier.name.head),
             "opening_date>" -> JsString(datelow),
             "opening_date<=" -> JsString(datehigh)
@@ -156,20 +158,21 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
     }
   }
 
-  implicit object MovieQueryJsonFormat extends RootJsonFormat[MovieQuery] {
+  trait QueryToJson {
+    import QueryToJsonInternal._
 
-    import QueryToJson._
-
-    def write(q: MovieQuery) =
-      q.specifier match {
-        case Title(_) => processTitle(q)
-        case Awards(_) => processAward(q)
-        case Festival(_) => processFestival(q)
-        case _ => throw new Exception("senseless query")
+    implicit object queryWriter extends Writes[MovieQuery] {
+      override def writes(q: MovieQuery) = {
+        q.specifier match {
+          case Title(_) => processTitle(q)
+          case Awards(_) => processAward(q)
+          case Festival(_) => processFestival(q)
+          case _ => throw new Exception("senseless query")
+        }
       }
-
-    def read(value: JsValue) = ???
+    }
   }
+
 }
 
 

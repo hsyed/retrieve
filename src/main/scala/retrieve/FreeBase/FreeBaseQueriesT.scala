@@ -1,7 +1,6 @@
 package retrieve.freebase
 
 import retrieve.freebase
-import spray.json._
 import spray.client.pipelining._
 import scalaz._
 import Scalaz._
@@ -12,6 +11,8 @@ import spray.http.HttpRequest
 import server._
 import spray.httpx.PlayJsonSupport._
 import QueryDSL.MovieQuery
+import play.api.libs.json._
+import spray.json._
 
 
 /**
@@ -31,11 +32,11 @@ abstract class JsonApiQuery[T : FromResponseUnmarshaller] {
   def asJson: Future[HttpEntity]
     = doQuery(sendReceive).map(_.entity)
 
-  def asCleanJson(implicit marsh: RootJsonFormat[T], sh: Show[T])
-    : Future[HttpEntity] = asCase.map( x=> {
-    println(x.toJson.compactPrint)
-    HttpEntity(x.toJson.prettyPrint)
-  })
+//  def asCleanJson(implicit sh: Show[T])
+//    : Future[HttpEntity] = asCase.map( x=> {
+//    println(x.toJson.compactPrint)
+//    HttpEntity(x.toJson.prettyPrint)
+//  })
 
   def asCase(): Future[T]
     = doQuery(sendReceive ~> unmarshal[T])
@@ -68,13 +69,14 @@ object FreeBaseQueries extends FreeBaseQueriesT {
   val baseUrl = "www.googleapis.com"
 
   def tVShowQuery(q: TVShowQuery) = freebase.JsonApiQuery[TVShowDescriptor](
-      Get(mkQuery(q.toJson.compactPrint))
+      Get(mkQuery("TODO : REMOVE ME"))
   )
 
   def movieQuery(q: MovieQuery) = {
     import MovieToJson.FromFreebase._
-
-    val g = Get(mkQuery(q.toJson.compactPrint))
+    println(q)
+    println(Json.toJson(q))
+    val g = Get(mkQuery(Json.toJson(q).toString))
     freebase.JsonApiQuery[NamedMovieList] (g)
   }
 }
