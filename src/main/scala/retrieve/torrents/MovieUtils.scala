@@ -1,6 +1,6 @@
 package retrieve.torrents
 
-import retrieve.freebase.{MovieDescriptor, MovieDescriptors}
+import retrieve.freebase.{MovieDescriptor, NamedMovieList}
 import scala.concurrent.Future
 import retrieve.scalay._
 
@@ -21,7 +21,7 @@ case class MovieTorrentSearchResponse(results : List[MovieTorrent]) {
 }
 
 trait MovieUtils {
-  implicit class pimpMusicDescriptors(movieList: MovieDescriptors) {
+  implicit class pimpMusicDescriptors(movieList: NamedMovieList) {
     def dispatchSearch = Future.sequence(movieList.md.map(x =>
       PirateSource.extractBlanketQueryFuture(x.imdb_id.head)
         .map(y => MovieTorrent(x, y))

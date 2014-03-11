@@ -19,7 +19,12 @@ libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.0.5"
 
 libraryDependencies +=  "com.typesafe.akka" %% "akka-actor" % "2.2.3"
 
-libraryDependencies += "org.reactivemongo" %% "reactivemongo" % "0.10.0"
-
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.1"
 
+libraryDependencies += "com.typesafe.slick" %% "slick" % "2.0.0"
+
+libraryDependencies += "com.github.tminglei" % "slick-pg_2.10" % "0.5.1.3"
+
+libraryDependencies += "com.github.tminglei" % "slick-pg_play-json_2.10" % "0.5.1.3"
+
+libraryDependencies += "org.postgresql" % "postgresql" % "9.3-1100-jdbc41"

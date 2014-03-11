@@ -17,52 +17,37 @@ import spray.httpx.PlayJsonSupport._
  * Created by hassan on 27/02/2014.
  */
 
-sealed trait JsonApiQuery {
+abstract class JsonApiQuery[T : FromResponseUnmarshaller] {
   val req: HttpRequest
-  type caseType
 
-  def doQuery[Z, T <% ((HttpRequest) => Future[Z])](p: T): Future[Z] = p(req)
 
-  def asString(implicit um: FromResponseUnmarshaller[caseType], sh: Show[caseType]):
-  Future[HttpEntity] = asCase.map(x => HttpEntity(x.show.toString()))
+  def doQuery[Z, X <% ((HttpRequest) => Future[Z])](p: X): Future[Z]
+    = p(req)
 
-  def asJson: Future[HttpEntity] = doQuery(sendReceive).map(_.entity)
+  def asString(implicit sh: Show[T]): Future[HttpEntity]
+    = asCase.map(x => HttpEntity(x.show.toString()))
 
-//  def asCleanJson(implicit um: FromResponseUnmarshaller[caseType], marsh: RootJsonFormat[caseType], sh: Show[caseType])
-//    : Future[HttpEntity] = asCase.map( x=> {
-//    println(x.toJson.compactPrint)
-//    HttpEntity(x.toJson.prettyPrint)
-//  })
+  def asJson: Future[HttpEntity]
+    = doQuery(sendReceive).map(_.entity)
 
-  def asCase(implicit unmarsh: FromResponseUnmarshaller[caseType]): Future[caseType]
-  = doQuery(sendReceive ~> unmarshal[caseType])
+  def asCleanJson(implicit marsh: RootJsonFormat[T], sh: Show[T])
+    : Future[HttpEntity] = asCase.map( x=> {
+    println(x.toJson.compactPrint)
+    HttpEntity(x.toJson.prettyPrint)
+  })
 
-  def awaitShow(implicit um: FromResponseUnmarshaller[caseType], sh: Show[caseType]) = asString.await.asString
+  def asCase(): Future[T]
+    = doQuery(sendReceive ~> unmarshal[T])
+
+  def awaitShow(implicit sh: Show[T]) = asString.await.asString
 
   def uri = req.uri.query.get("query")
 }
 
 //TODO Parse Error responses
-//HttpEntity(application/json; charset=UTF-8,{
-//"error": {
-//"errors": [
-//{
-//"domain": "global",
-//"reason": "invalid",
-//"message": "Unique query may have at most one result. Got 10",
-//"locationType": "other",
-//"location": "genre"
-//}
-//],
-//"code": 400,
-//"message": "Unique query may have at most one result. Got 10"
-//}
-//}
-//)
 object JsonApiQuery {
-  def apply[T](r: HttpRequest) = new JsonApiQuery {
+  def apply[T : FromResponseUnmarshaller](r: HttpRequest) = new JsonApiQuery[T] {
     override val req: HttpRequest = r
-    override type caseType = T
   }
 }
 
@@ -86,9 +71,10 @@ object FreeBaseQueries extends FreeBaseQueriesT {
   )
 
   def movieQuery(q: MovieQuery) = {
+    import MovieToJson.FromFreebase._
+
     val g = Get(mkQuery(q.toJson.compactPrint))
-   // println(q.toJson.compactPrint)
-    freebase.JsonApiQuery[MovieDescriptors] (g)
+    freebase.JsonApiQuery[NamedMovieList] (g)
   }
 }
 

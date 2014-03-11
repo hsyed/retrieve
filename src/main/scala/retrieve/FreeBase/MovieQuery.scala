@@ -1,6 +1,7 @@
 package retrieve.freebase
 
 import spray.json._
+//import play.api.libs.json._
 
 // TODO ADD DEFAULT DATE INJECTION MECHANISM, Cannes films are often missing initial_release_date
 //
@@ -8,20 +9,6 @@ import spray.json._
 /**
  * Created by hassan on 28/02/2014.
  */
-
-//[{
-//"type": "/film/film",
-//"directed_by": [],
-//"name": null,
-//"trailers": [],
-//"genre": [],
-//"subjects": [],
-//"film_festivals": [{
-//"festival": {
-//"name": "cannes film festival"
-//}
-//}]
-//}]
 trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
   private object QueryToJson {
     private val isDatePredicate = (x: QueryTag) => x.isInstanceOf[BetweenDates]
@@ -80,6 +67,7 @@ trait MyMovieQueryProtocol extends DefaultJsonProtocol with NullOptions {
     }
 
     private val default_shape = Map(
+      "mid" -> JsNull,
       "name" -> JsNull,
       "type" -> JsString("/film/film"),
       "initial_release_date" -> JsNull,

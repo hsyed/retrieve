@@ -12,12 +12,10 @@ package object freebase
   with MyTVShowQueryProtocol
   with MovieQueryOps
   with spray.httpx.SprayJsonSupport
-  with spray.httpx.PlayJsonSupport
   with MovieDescriptorOps
   with NamedQueries
   with Utility
   with MyMovieQueryProtocol
-  with MovieToJsonFromFreebase
   {
 
 

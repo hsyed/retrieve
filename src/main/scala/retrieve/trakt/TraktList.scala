@@ -10,8 +10,8 @@ import spray.httpx.marshalling._
 
 import DefaultJsonProtocol._
 import retrieve.trakt.TraktGet.TraktUserListResponse
-import retrieve.freebase.MovieDescriptors
-import retrieve.freebase.MovieDescriptors
+import retrieve.freebase.NamedMovieList
+import retrieve.freebase.NamedMovieList
 import retrieve.trakt.TraktGet.TraktUserListResponse
 import scala.Some
 
@@ -43,7 +43,7 @@ object TraktPost {
     pipeline(p).await
   }
 
-  def addAllDescriptors(name : String, movies : MovieDescriptors)(implicit user : TraktUser)  = {
+  def addAllDescriptors(name : String, movies : NamedMovieList)(implicit user : TraktUser)  = {
     val uri = f"http://api.trakt.tv/lists/items/add/${user.apiKey}"
     println(uri)
     val moviesAsJson = JsArray(
@@ -97,7 +97,7 @@ object TraktList {
       updateLists
     }
 
-  def addAllDescriptors(name: String, movies : MovieDescriptors)
+  def addAllDescriptors(name: String, movies : NamedMovieList)
   (implicit user : TraktUser) = {
     val slug = lists.apply(name).slug
     TraktPost.addAllDescriptors(slug,movies)
