@@ -7,20 +7,6 @@ import Scalaz._
 /**
  * Created by hassan on 27/02/2014.
  */
-
-//{
-//"name": "the walking dead",
-//"type": "/tv/tv_program",
-//"number_of_episodes": null,
-//"number_of_seasons": null,
-//"seasons": [{
-//"season_number": null,
-//"episodes": [{
-//"name": null,
-//"air_date": null
-//}]
-//}]
-//}
 trait MyTVShowQueryProtocol extends DefaultJsonProtocol  {
   implicit object TVShowJsonQueryFormat extends RootJsonFormat[TVShowQuery] {
     def write(q: TVShowQuery) = JsObject(

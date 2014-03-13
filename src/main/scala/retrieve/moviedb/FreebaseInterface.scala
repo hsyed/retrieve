@@ -1,16 +1,14 @@
 package retrieve.moviedb
 
 import retrieve.freebase.{NamedMovieList, MovieDescriptor}
-import play.api.libs.json.Json
 import MyPostgresDriver.simple._
 
 /**
  * Created by hassan on 11/03/2014.
  */
-trait MovieDBInterface {
+trait FreebaseInterface {
 
-  import retrieve.freebase.MovieToJson.normal._
-  import Schema._
+  import SchemaFreebase._
 
   def insertMissingMovies(movies: List[MovieDescriptor]) = {
     val movieMIDs = movies.map(_.mid).toSet
@@ -30,11 +28,10 @@ trait MovieDBInterface {
   def getMoviesWithMIDs(mids: List[String]) =
     db.dbInstance.withSession {
       implicit session =>
-        dbMovieDescriptor.filter(x => x.mID inSet mids).map(_.data)
-          .list.map(x => {
-            Json.fromJson[MovieDescriptor](x).get
-        })
+        dbMovieDescriptor.filter(x => x.mID inSet mids)
+          .list
     }
+
 
   def saveNamedMovieList(list: NamedMovieList) = db.dbInstance.withSession {
     implicit session => dbNamedMovieList.insert(list)

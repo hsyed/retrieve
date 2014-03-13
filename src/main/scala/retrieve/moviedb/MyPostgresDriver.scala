@@ -7,7 +7,8 @@ import com.github.tminglei.slickpg._
  */
 trait MyPostgresDriver  extends PostgresDriver
                         with    PgArraySupport
-                        with    PgPlayJsonSupport {
+                        with    PgPlayJsonSupport
+                        with    PgHStoreSupport {
 
   override val Implicit = new ImplicitsPlus {}
   override val simple =  new SimpleQLPlus {}
@@ -15,6 +16,7 @@ trait MyPostgresDriver  extends PostgresDriver
   trait ImplicitsPlus extends Implicits
                       with    ArrayImplicits
                       with    JsonImplicits
+                      with    HStoreImplicits
 
   trait SimpleQLPlus  extends SimpleQL
                       with    ImplicitsPlus

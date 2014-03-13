@@ -4,7 +4,6 @@ import retrieve.freebase
 import spray.client.pipelining._
 import scalaz._
 import Scalaz._
-import scala.concurrent.Future
 import spray.httpx.unmarshalling.FromResponseUnmarshaller
 import spray.http.{HttpEntity, Uri}
 import spray.http.HttpRequest
@@ -12,7 +11,6 @@ import server._
 import spray.httpx.PlayJsonSupport._
 import QueryDSL.MovieQuery
 import play.api.libs.json._
-import spray.json._
 import retrieve.freebase.MovieToJson.FromFreebase
 import retrieve.moviedb
 import scala.concurrent._
@@ -24,6 +22,7 @@ import scala.concurrent._
 
 trait JsonApiQueryLike[T] {
   def asCase: Future[T]
+  def uri : String
 }
 
 abstract class JsonApiQuery[T: FromResponseUnmarshaller] extends JsonApiQueryLike[T] {
@@ -49,7 +48,7 @@ abstract class JsonApiQuery[T: FromResponseUnmarshaller] extends JsonApiQueryLik
 
   def awaitShow(implicit sh: Show[T]) = asString.await.asString
 
-  def uri = req.uri.query.get("query")
+  def uri = req.uri.query.get("query").getOrElse("")
 }
 
 abstract class JsonApiQueryWithCache[T: FromResponseUnmarshaller] extends JsonApiQuery[T] {
@@ -88,6 +87,7 @@ abstract class JsonApiQueryWithCache[T: FromResponseUnmarshaller] extends JsonAp
 
         def fromCache = fromCache_
         def toCache = toCache_
+
       }
   }
 
@@ -122,13 +122,14 @@ abstract class JsonApiQueryWithCache[T: FromResponseUnmarshaller] extends JsonAp
       implicit val reader = new FromFreebase.NamedMovieListFromFreeBase(
         listName, listQuery, defaultReleaseDate)
 
+      val queryUri = Get(mkQuery(Json.toJson(q).toString))
+
       val movieFromCache = () => future {
         moviedb.getNamedMovieList(listName, listQuery)
       }
       val saveMovies = (x: NamedMovieList) => x.saveDB
 
-      val g = Get(mkQuery(Json.toJson(q).toString))
-      freebase.JsonApiQuery[NamedMovieList](g, movieFromCache,saveMovies)
+      freebase.JsonApiQuery[NamedMovieList](queryUri, movieFromCache,saveMovies)
     }
   }
 

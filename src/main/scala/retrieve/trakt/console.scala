@@ -29,7 +29,7 @@ class TraktUserFromConfig(config : Config) extends TraktUser {
 
 }
 
-object console {
+trait console extends MovieSummaryFromFreebaseResolver {
   implicit object defaultUser extends TraktUserFromConfig
-
+  implicit object MovieSummary extends MovieSummaryApi
 }

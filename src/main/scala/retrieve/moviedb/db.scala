@@ -18,7 +18,9 @@ object db {
   val dbInstance = Database.forDataSource(ds)
 
   def createSchema = {
-    val ddl = Schema.dbMovieDescriptor.ddl ++ Schema.dbNamedMovieList.ddl
+    val ddl = SchemaFreebase.dbMovieDescriptor.ddl ++
+              SchemaFreebase.dbNamedMovieList.ddl ++
+              SchemaTrakt.dbTraktMovieSummary.ddl
     dbInstance.withSession { implicit session =>
       ddl.create
     }
